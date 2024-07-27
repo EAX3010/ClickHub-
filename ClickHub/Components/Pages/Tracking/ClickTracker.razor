@@ -1,0 +1,159 @@
+﻿@page "/tracking"
+@using ClickHub.Models
+@using ClickHub.Services
+@using DevExpress.Blazor
+@using ClickHub.Interfaces
+@using DevExpress.Data.Filtering
+@using DevExpress.Data.Filtering.Helpers
+@using DevExpress.Export
+
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [StreamRendering(true)]
+@inject IDomainDatabase DatabaseService
+@inject NavigationManager NavigationManager
+
+<h1>Click Tracking</h1>
+
+<h2>Recent Clicks</h2>
+
+<DxLoadingPanel Visible="true" ApplyBackgroundShading="true" PositionTarget="#show-panel" />
+
+@if (clicks == null)
+{
+    <DxLoadingPanel Visible="true" />
+}
+else
+{
+    <DxLoadingPanel Visible="false" />
+    
+    <label for="deDisplayFormat" class="demo-text cw-320 mb-3">Date Range</label>
+    <DxDateRangePicker 
+        @bind-StartDate="@StartDate"
+        @bind-EndDate="@EndDate"
+        DisplayFormat="From: {0:M}; To: {1:M}"
+        CssClass="cw-320 mb-1"
+        InputId="deDisplayFormat" 
+        onchange="@LoadClicksAsync()" 
+    />
+    <br />
+    <DxGrid 
+        @ref="Grid"
+        Data="@clicks"
+        ShowSearchBox="true"
+        SearchText=""
+        ShowGroupPanel="true"
+        AutoExpandAllGroupRows="true"
+        GroupFooterDisplayMode="GridGroupFooterDisplayMode.IfExpanded"
+        SelectionMode="GridSelectionMode.Multiple"
+        SelectAllCheckboxMode="GridSelectAllCheckboxMode.AllPages"
+        ColumnResizeMode="GridColumnResizeMode.NextColumn"
+        TextWrapEnabled="false"
+        PageSize="15"
+        ShowFilterRow="true"
+        HighlightRowOnHover="true"
+    >
+        <Columns>
+            <DxGridSelectionColumn Width="60px" AllowSelectAll="true" />
+            <DxGridDataColumn FieldName="Timestamp" Caption="Timestamp" DisplayFormat="yyyy-MM-dd HH:mm:ss" />
+            <DxGridDataColumn FieldName="Id" Caption="ID" />
+            <DxGridDataColumn FieldName="Ccpturl" Caption="CCPT URL" />
+            <DxGridDataColumn FieldName="AdPosition" Caption="Ad Position" />
+            <DxGridDataColumn FieldName="LocationPhysical" Caption="Physical Location" />
+            <DxGridDataColumn FieldName="LocationInterest" Caption="Interest Location" />
+            <DxGridDataColumn FieldName="AdGroup" Caption="Ad Group" />
+            <DxGridDataColumn FieldName="Keyword" Caption="Keyword" />
+            <DxGridDataColumn FieldName="Network" Caption="Network" />
+            <DxGridDataColumn FieldName="LandingPageUrl" Caption="Landing Page URL" />
+            <DxGridDataColumn FieldName="Campaign" Caption="Campaign" />
+            <DxGridDataColumn FieldName="Device" Caption="Device" />
+            <DxGridDataColumn FieldName="Placement" Caption="Placement" />
+            <DxGridDataColumn FieldName="UserAgent" Caption="User Agent" />
+            <DxGridDataColumn FieldName="IpAddress" Caption="IP Address" />
+        </Columns>
+        <TotalSummary>
+            <DxGridSummaryItem FieldName="Id" SummaryType="GridSummaryItemType.Count" FooterColumnName="Id" />
+        </TotalSummary>
+        <GroupSummary>
+            <DxGridSummaryItem FieldName="Id" SummaryType="GridSummaryItemType.Count" FooterColumnName="Id" />
+        </GroupSummary>
+        <ToolbarTemplate>
+            <DxToolbar>
+                <DxToolbarItem Text="Export to XLSX" Click="ExportXlsx_Click" BeginGroup="true" />
+                <DxToolbarItem Text="Export to XLS" Click="ExportXls_Click" BeginGroup="true" />
+                <DxToolbarItem Text="Export to CSV" Click="ExportCsv_Click" BeginGroup="true" />
+                <DxToolbarItem Context="clicks" Alignment="ToolbarItemAlignment.Right" BeginGroup="true">
+                    <Template>
+                        <DxCheckBox @bind-Checked="@ExportSelectedRowsOnly">Export Selected Rows Only</DxCheckBox>
+                    </Template>
+                </DxToolbarItem>
+            </DxToolbar>
+        </ToolbarTemplate>
+    </DxGrid>
+}
+
+@code {
+    private bool ExportSelectedRowsOnly { get; set; }
+    private string? trackingUrl { get; set; }
+    private IEnumerable<ClickData>? clicks { get; set; }
+    IGrid? Grid { get; set; }
+
+    private DateTime? StartDate = DateTime.Now.AddDays(-7);
+    private DateTime? EndDate = DateTime.Now;
+
+    protected override async Task OnInitializedAsync()
+    {
+        trackingUrl = $"{NavigationManager.BaseUri}track";
+        await LoadClicksAsync();
+    }
+
+    private async Task LoadClicksAsync()
+    {
+        if (StartDate.HasValue && EndDate.HasValue)
+        {
+            clicks = await DatabaseService.GetClicksInRangeAsync(StartDate.Value, EndDate.Value);
+        }
+        else
+        {
+            clicks = await DatabaseService.GetRecentClicksAsync();
+        }
+    }
+
+    private async Task ApplyDateFilter()
+    {
+        await LoadClicksAsync();
+        StateHasChanged();
+    }
+
+    void OnCustomizeCell(GridExportCustomizeCellEventArgs args)
+    {
+        if (args.ColumnFieldName == "Id" && args.AreaType == DevExpress.Export.SheetAreaType.DataArea)
+            args.Formatting.Font = new DevExpress.Export.XlCellFont() { Italic = true };
+        args.Handled = true;
+    }
+
+    async Task ExportXlsx_Click()
+    {
+        await Grid.ExportToXlsxAsync("ExportResult", new GridXlExportOptions()
+        {
+            ExportSelectedRowsOnly = ExportSelectedRowsOnly,
+            CustomizeCell = OnCustomizeCell
+        });
+    }
+
+    async Task ExportXls_Click()
+    {
+        await Grid.ExportToXlsAsync("ExportResult", new GridXlExportOptions()
+        {
+            ExportSelectedRowsOnly = ExportSelectedRowsOnly,
+            CustomizeCell = OnCustomizeCell
+        });
+    }
+
+    async Task ExportCsv_Click()
+    {
+        await Grid.ExportToCsvAsync("ExportResult", new GridCsvExportOptions()
+        {
+            ExportSelectedRowsOnly = ExportSelectedRowsOnly
+        });
+    }
+}

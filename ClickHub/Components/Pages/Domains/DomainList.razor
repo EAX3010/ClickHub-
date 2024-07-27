@@ -1,0 +1,78 @@
+﻿@page "/domains"
+@using DevExpress.Blazor
+@using ClickHub.Models
+@using ClickHub.Services
+@using ClickHub.Interfaces
+@inject IDomainService DomainService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h1>Domains</h1>
+<DxGrid Data="domains" 
+            CustomizeEditModel="OnCustomizeEditModel"
+            EditModelSaving="OnEditModelSaving"
+            DataItemDeleting="OnDataItemDeleting"
+            KeyFieldName="Id">
+    <Columns>
+        <DxGridCommandColumn Width="10%" />
+        <DxGridDataColumn FieldName="Id" Width="10%" />
+        <DxGridDataColumn FieldName="LandingPageUrl" Width="30%" />
+        <DxGridDataColumn FieldName="TrakingUrl" Width="50%" />
+    </Columns>
+    <EditFormTemplate Context="editFormContext">
+        <DxFormLayout>
+            <DxFormLayoutItem Caption="LandingPageUrl">
+                @editFormContext.GetEditor("LandingPageUrl")
+            </DxFormLayoutItem>
+        </DxFormLayout>
+    </EditFormTemplate>
+</DxGrid>
+
+@code 
+{
+    void OnCustomizeEditModel(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var editModel = (DomainConfig)e.EditModel;
+        }
+    }
+    async Task OnEditModelSaving(GridEditModelSavingEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var editModel = (DomainConfig)e.EditModel;
+            await DomainService.CreateDomainAsync(editModel.LandingPageUrl);
+            await LoadDomains();
+
+        }
+        else
+        {
+            e.CopyChangesToDataItem();
+            var editModel = (DomainConfig)e.EditModel;
+            await DomainService.UpdateDomainAsync(int.Parse(editModel.Id), editModel.LandingPageUrl);
+        }
+    }
+    async Task OnDataItemDeleting(GridDataItemDeletingEventArgs e)
+    {
+        var editModel = (DomainConfig)e.DataItem;
+        if (await DomainService.DeleteDomainAsync(int.Parse(editModel.Id)))
+        {
+            await LoadDomains();
+        }
+    }
+    private IEnumerable<DomainConfig> domains;
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDomains();
+    }
+    private async Task LoadDomains()
+    {
+        domains = await DomainService.GetDomainsAsync();
+        foreach (var domain in domains)
+        {
+            domain.TrakingUrl = "" + NavigationManager.BaseUri + "track?id=" + domain.Id + "&adpos={adposition}&locphisical={loc_physical_ms}&locinterest={loc_interest_ms}&adgrp={adgroupid}&kw={keyword}&nw={network}&url={lpurl}&cpn={campaignid}&device={device}&ccpturl=" + domain.LandingPageUrl + "&pl={placement}";
+        }
+        DomainService.InitializeAsync();
+    }
+}

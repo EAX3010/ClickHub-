@@ -1,0 +1,30 @@
+﻿@page "/"
+<PageTitle>Welcome</PageTitle>
+
+<div class="main-content">
+    <DxGridLayout CssClass="welcome-gridlayout" RowSpacing="3rem">
+        <Rows>
+            <DxGridLayoutRow Height="auto" Areas="header"></DxGridLayoutRow>
+            <DxGridLayoutRow Height="auto" Areas="cards"></DxGridLayoutRow>
+        </Rows>
+        <Items>
+            <DxGridLayoutItem Area="header" CssClass="title">
+                <Template>
+                    <div class="title-content-text">Welcome ClickHub</div>
+                </Template>
+            </DxGridLayoutItem>
+            <DxGridLayoutItem Area="cards" CssClass="welcome-cards">
+                <Template>
+                    <NavLink class="welcome-card" href="/domains">
+                        <div class="welcome-card-text">Domains</div>
+                        <div class="welcome-card-back"></div>
+                    </NavLink>
+                    <NavLink class="welcome-card" href="/tracking">
+                        <div class="welcome-card-text">Click Tracking</div>
+                        <div class="welcome-card-back"></div>
+                    </NavLink>
+                </Template>
+            </DxGridLayoutItem>
+        </Items>
+    </DxGridLayout>
+</div>
