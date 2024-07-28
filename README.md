@@ -152,10 +152,6 @@ We have an exciting development plan for ClickHub! Here's a quick overview of ou
 
 For a more detailed look at our plans and progress, check out our [full roadmap](ROADMAP.md)
 
-## Acknowledgments
 
-- DevExpress for their Blazor components
-- Dapper for efficient database access
-- MySqlConnector for MySQL integration
 
 ---
