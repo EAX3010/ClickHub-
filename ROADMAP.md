@@ -29,4 +29,4 @@ This document outlines the development plan for ClickHub. It's a living document
 - [x] Admin interface with DevExpress Blazor components
 - [x] Data export capabilities (XLSX, XLS, CSV)
 
-We welcome community input on these plans. Feel free to open an issue to discuss any of these items or suggest new ideas!
+
