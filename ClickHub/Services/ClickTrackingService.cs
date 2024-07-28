@@ -2,6 +2,7 @@
 using ClickHub.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
 namespace ClickHub.Services
@@ -23,29 +24,32 @@ namespace ClickHub.Services
         {
             var query = context.Request.Query;
 
+            // Validate required parameters
             if (!int.TryParse(query["id"], out int id) || string.IsNullOrEmpty(query["ccpturl"]))
             {
                 context.Response.StatusCode = 400;
                 return context.Response.WriteAsync("Invalid request parameters");
             }
 
+            // Validate domain
             if (!_domainService.TryGetDomain(id, out var domainConfig))
             {
                 context.Response.StatusCode = 400;
-                return context.Response.WriteAsync("Invalid domain" + id);
+                return context.Response.WriteAsync($"Invalid domain: {id}");
             }
 
             // Determine the final URL
-            string finalUrl = query["url"];
-            if (string.IsNullOrEmpty(finalUrl) || finalUrl == "{lpurl}")
-            {
-                finalUrl = query["ccpturl"];
-            }
+            string finalUrl = !string.IsNullOrEmpty(query["url"]) && query["url"] != "{lpurl}"
+                ? query["url"]
+                : query["ccpturl"];
 
-            // Perform redirect
+            // Validate and secure the URL
+            finalUrl = ValidateAndSecureUrl(finalUrl);
+
+            // Handle Google parallel tracking
             if (!string.IsNullOrEmpty(finalUrl) && finalUrl.Contains("google.com/asnc"))
             {
-                context.Response.StatusCode = 204;
+                context.Response.StatusCode = 204; // No Content
             }
             else
             {
@@ -72,13 +76,45 @@ namespace ClickHub.Services
                 IpAddress = context.Connection.RemoteIpAddress?.ToString()
             };
 
-            // Use TryWrite to avoid blocking if the channel is full
+            // Use TryWrite for non-blocking enqueue
             if (!_channel.Writer.TryWrite(clickData))
             {
                 _logger.LogWarning("Failed to enqueue click data for ID: {Id}. Channel might be full.", id);
             }
 
             return Task.CompletedTask;
+        }
+
+        public static string ValidateAndSecureUrl(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                throw new ArgumentException("Input cannot be null or empty.", nameof(input));
+            }
+
+            // Check if the input is already a valid URL
+            if (Uri.TryCreate(input, UriKind.Absolute, out Uri? uri))
+            {
+                // If it's already HTTPS, return as is
+                if (uri.Scheme == Uri.UriSchemeHttps)
+                {
+                    return input;
+                }
+
+                // If it's HTTP, update to HTTPS
+                if (uri.Scheme == Uri.UriSchemeHttp)
+                {
+                    return $"https://{uri.Host}{uri.PathAndQuery}{uri.Fragment}";
+                }
+            }
+
+            // If it's not a valid URL, assume it's a domain and create an HTTPS URL
+            string cleanInput = Regex.Replace(input, @"^(https?:)?//", "", RegexOptions.IgnoreCase)
+                                     .Split(new[] { '/' }, 2)[0]
+                                     .Trim()
+                                     .Replace(" ", "");
+
+            return $"https://{cleanInput}";
         }
     }
 }

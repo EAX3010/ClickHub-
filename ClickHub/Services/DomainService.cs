@@ -85,7 +85,7 @@ namespace ClickHub.Services
         {
             if (_domains.TryGetValue(id, out var domain))
             {
-                var result = await _domainDatabase.RemoveDomainAsync(domain.LandingPageUrl);
+                var result = await _domainDatabase.RemoveDomainAsync(id);
                 if (result)
                 {
                     _domains.TryRemove(id, out _);

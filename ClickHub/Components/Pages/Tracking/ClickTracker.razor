@@ -112,10 +112,6 @@ else
         {
             clicks = await DatabaseService.GetClicksInRangeAsync(StartDate.Value, EndDate.Value);
         }
-        else
-        {
-            clicks = await DatabaseService.GetRecentClicksAsync();
-        }
     }
 
     private async Task ApplyDateFilter()
