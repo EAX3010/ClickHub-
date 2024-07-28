@@ -1,23 +1,28 @@
 ﻿using ClickHub.Interfaces;
 using ClickHub.Models;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace ClickHub.Services
 {
     public class DomainService : IDomainService
     {
-        public readonly IDomainDatabase _domainDatabase;
-        private Dictionary<int, DomainConfig> _domains;
+        private readonly IDomainDatabase _domainDatabase;
+        private readonly ILogger<DomainService> _logger;
+        private ConcurrentDictionary<int, DomainConfig> _domains;
+        private readonly SemaphoreSlim _refreshLock = new SemaphoreSlim(1, 1);
 
-        public DomainService(IDomainDatabase domainDatabase)
+        public DomainService(IDomainDatabase domainDatabase, ILogger<DomainService> logger)
         {
             _domainDatabase = domainDatabase;
-            _domains = new Dictionary<int, DomainConfig>();
+            _logger = logger;
+            _domains = new ConcurrentDictionary<int, DomainConfig>();
         }
 
         public async Task InitializeAsync()
         {
-            _domains = await _domainDatabase.LoadDomainsAsync();
+            var domains = await _domainDatabase.LoadDomainsAsync();
+            _domains = new ConcurrentDictionary<int, DomainConfig>(domains);
         }
 
         public bool TryGetDomain(int id, out DomainConfig domainConfig)
@@ -27,12 +32,25 @@ namespace ClickHub.Services
 
         public async Task RefreshDomainsAsync()
         {
-            _domains = await _domainDatabase.LoadDomainsAsync();
+            try
+            {
+                await _refreshLock.WaitAsync();
+                var newDomains = await _domainDatabase.LoadDomainsAsync();
+                _domains = new ConcurrentDictionary<int, DomainConfig>(newDomains);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing domains");
+            }
+            finally
+            {
+                _refreshLock.Release();
+            }
         }
 
-        public async Task<IEnumerable<DomainConfig>> GetDomainsAsync()
+        public Task<IEnumerable<DomainConfig>> GetDomainsAsync()
         {
-            return _domains.Values;
+            return Task.FromResult(_domains.Values.AsEnumerable());
         }
 
         public async Task<bool> CreateDomainAsync(string landingPageUrl)
@@ -50,7 +68,15 @@ namespace ClickHub.Services
             var result = await _domainDatabase.UpdateDomainAsync(id, landingPageUrl);
             if (result)
             {
-                await RefreshDomainsAsync();
+                if (_domains.TryGetValue(id, out var domain))
+                {
+                    domain.LandingPageUrl = landingPageUrl;
+                    _domains[id] = domain;
+                }
+                else
+                {
+                    await RefreshDomainsAsync();
+                }
             }
             return result;
         }
@@ -62,7 +88,7 @@ namespace ClickHub.Services
                 var result = await _domainDatabase.RemoveDomainAsync(domain.LandingPageUrl);
                 if (result)
                 {
-                    await RefreshDomainsAsync();
+                    _domains.TryRemove(id, out _);
                 }
                 return result;
             }
