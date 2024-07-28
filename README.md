@@ -28,7 +28,7 @@ ClickHub is a high-performance click tracking and domain management system built
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/clickhub.git
+   git clone https://github.com/x301000/ClickHub-
    cd clickhub
    ```
 
@@ -49,7 +49,7 @@ ClickHub is a high-performance click tracking and domain management system built
    dotnet run
    ```
 
-The application will be available at `https://localhost:5001`.
+The application will be available at `https://localhost:44391`.
 
 ## Usage
 
@@ -72,7 +72,7 @@ The main tracking endpoint is available at `/track`. It accepts the following qu
 
 Example tracking URL:
 ```
-https://yourdomain.com/track?id=1&ccpturl=https://example.com&adpos=top&kw=example
+https://localhost:44391/track?id=8&adpos={adposition}&locphisical={loc_physical_ms}&locinterest={loc_interest_ms}&adgrp={adgroupid}&kw={keyword}&nw={network}&url={lpurl}&cpn={campaignid}&device={device}&ccpturl=google.com&pl={placement}
 ```
 
 ### Admin Interface
