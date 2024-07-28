@@ -150,24 +150,7 @@ We have an exciting development plan for ClickHub! Here's a quick overview of ou
 - Medium-term: Public API, real-time analytics, multi-database support
 - Long-term: Microservices architecture, multi-tenancy, advanced fraud detection
 
-For a more detailed look at our plans and progress, check out our [full roadmap](ROADMAP.md) and our [project board](https://github.com/yourusername/clickhub/projects).
-
-We welcome community input and contributions to help shape the future of ClickHub!
-
-## Contributing
-
-We welcome contributions to ClickHub! If you're interested in helping improve the project, here are some ways you can contribute:
-
-- Report bugs or suggest features by opening issues
-- Submit pull requests for bug fixes or new features
-- Improve documentation
-- Share your experience using ClickHub
-
-Please read our [Contributing Guidelines](CONTRIBUTING.md) for more information on how to get started.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+For a more detailed look at our plans and progress, check out our [full roadmap](ROADMAP.md)
 
 ## Acknowledgments
 
@@ -176,5 +159,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - MySqlConnector for MySQL integration
 
 ---
-
-For more detailed information, please refer to the [Documentation](docs/index.md).
